@@ -4,9 +4,9 @@ session_start();
 
 // Database configuration
 $host = 'localhost';
-$dbname = 'postgres';
+$dbname = 'resume_system';
 $username = 'postgres';  
-$password = 'alohamora7';  
+$password = 'Alohamora7';  
 
 // Create connection
 try {

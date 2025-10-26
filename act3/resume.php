@@ -568,15 +568,16 @@ if (isset($_GET['logout'])) {
                     <span>Limited access - Contact information hidden</span>
                 <?php endif; ?>
             </div>
-            <div class="status-right">
-                <?php if ($is_logged_in): ?>
-                    <a href="edit_resume.php">✏️ Edit Resume</a>
-                    <a href="?logout=1">Logout</a>
-                <?php else: ?>
-                    <a href="login.php">Login</a>
-                    <a href="signup.php">Sign Up</a>
-                <?php endif; ?>
-            </div>
+                <!-- In resume.php, find the .top-nav section and update it: -->
+                <div class="status-right">
+                    <?php if ($is_logged_in): ?>
+                        <a href="edit_resume.php">✏️ Edit Resume</a>
+                        <a href="?logout=1">Logout</a>
+                    <?php else: ?>
+                        <a href="login.php">Login</a>
+                        <a href="signup.php">Sign Up</a>
+                    <?php endif; ?>
+                </div>
         </div>
 
         <!-- Header Section -->

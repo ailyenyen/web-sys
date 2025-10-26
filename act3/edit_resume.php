@@ -9,7 +9,7 @@ if (!isLoggedIn()) {
 }
 
 // IMPORTANT: All users edit the SAME resume (user_id = 1)
-$user_id = 1; // Shared resume for everyone
+$user_id = 1;
 $resume = new Resume($pdo, $user_id);
 
 $message = '';
@@ -21,6 +21,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     try {
         switch ($action) {
+            case 'update_user_info':
+                // Update user table (name and email)
+                $update_query = "UPDATE users SET 
+                                full_name = :full_name,
+                                email = :email
+                                WHERE id = :user_id";
+                $stmt = $pdo->prepare($update_query);
+                $stmt->bindParam(':full_name', $_POST['full_name']);
+                $stmt->bindParam(':email', $_POST['email']);
+                $stmt->bindParam(':user_id', $user_id);
+                
+                if ($stmt->execute()) {
+                    $message = 'User information updated successfully!';
+                    $message_type = 'success';
+                } else {
+                    $message = 'Failed to update user information.';
+                    $message_type = 'error';
+                }
+                break;
+                
             case 'update_profile':
                 $data = [
                     'title' => $_POST['title'] ?? '',
@@ -57,6 +77,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
                 break;
                 
+            case 'update_education':
+                $data = [
+                    'degree' => $_POST['degree'] ?? '',
+                    'school' => $_POST['school'] ?? '',
+                    'start_date' => $_POST['start_date'] ?? '',
+                    'end_date' => $_POST['end_date'] ?? '',
+                    'gpa' => $_POST['gpa'] ?? '',
+                    'display_order' => $_POST['display_order'] ?? 0
+                ];
+                
+                if ($resume->updateEducation($_POST['id'], $data)) {
+                    $message = 'Education updated successfully!';
+                    $message_type = 'success';
+                }
+                break;
+                
             case 'delete_education':
                 if ($resume->deleteEducation($_POST['id'])) {
                     $message = 'Education deleted successfully!';
@@ -74,6 +110,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 if ($resume->addProject($data)) {
                     $message = 'Project added successfully!';
+                    $message_type = 'success';
+                }
+                break;
+                
+            case 'update_project':
+                $data = [
+                    'title' => $_POST['title'] ?? '',
+                    'period' => $_POST['period'] ?? '',
+                    'description' => $_POST['description'] ?? '',
+                    'display_order' => $_POST['display_order'] ?? 0
+                ];
+                
+                if ($resume->updateProject($_POST['id'], $data)) {
+                    $message = 'Project updated successfully!';
                     $message_type = 'success';
                 }
                 break;
@@ -133,6 +183,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 // Get resume data
 $resume_data = $resume->getCompleteResume();
 $profile = $resume_data['profile'];
+
+// Get edit mode from URL
+$edit_education_id = $_GET['edit_education'] ?? null;
+$edit_project_id = $_GET['edit_project'] ?? null;
+
+// Handle logout
+if (isset($_GET['logout'])) {
+    logout();
+    header('Location: login.php');
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
@@ -264,6 +325,13 @@ $profile = $resume_data['profile'];
             box-shadow: 0 0 0 2px rgba(73, 80, 87, 0.1);
         }
 
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #6c757d;
+            font-size: 0.85em;
+        }
+
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -278,6 +346,8 @@ $profile = $resume_data['profile'];
             font-size: 0.95em;
             font-weight: 500;
             transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
         }
 
         .btn-primary {
@@ -296,6 +366,15 @@ $profile = $resume_data['profile'];
 
         .btn-success:hover {
             background-color: #218838;
+        }
+
+        .btn-warning {
+            background-color: #ffc107;
+            color: #000;
+        }
+
+        .btn-warning:hover {
+            background-color: #e0a800;
         }
 
         .btn-danger {
@@ -322,6 +401,9 @@ $profile = $resume_data['profile'];
             border-radius: 5px;
             margin-bottom: 12px;
             border-left: 3px solid #6c757d;
+        }
+
+        .list-item-header {
             display: flex;
             justify-content: space-between;
             align-items: start;
@@ -345,6 +427,7 @@ $profile = $resume_data['profile'];
         .list-item-actions {
             display: flex;
             gap: 8px;
+            flex-shrink: 0;
         }
 
         .collapsible {
@@ -392,6 +475,19 @@ $profile = $resume_data['profile'];
             border: 1px solid #dee2e6;
         }
 
+        .edit-form {
+            background-color: #fff9e6;
+            border: 2px solid #ffc107;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .edit-form h4 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -402,7 +498,7 @@ $profile = $resume_data['profile'];
                 gap: 15px;
             }
             
-            .list-item {
+            .list-item-header {
                 flex-direction: column;
                 gap: 10px;
             }
@@ -413,8 +509,7 @@ $profile = $resume_data['profile'];
     <div class="top-nav">
         <h1>📝 Resume Dashboard</h1>
         <div class="top-nav-links">
-            <a href="public_resume.php?id=<?php echo $user_id; ?>" target="_blank">👁️ View Public Resume</a>
-            <a href="resume.php">🏠 My Resume</a>
+            <a href="resume.php">👁️ View Resume</a>
             <a href="?logout=1">🚪 Logout</a>
         </div>
     </div>
@@ -426,24 +521,32 @@ $profile = $resume_data['profile'];
             </div>
         <?php endif; ?>
 
-        <!-- Personal Information -->
+        <!-- User Information (Name & Email) -->
         <div class="section-card">
-            <h2>Personal Information</h2>
+            <h2>User Information</h2>
             <form method="POST">
-                <input type="hidden" name="action" value="update_profile">
+                <input type="hidden" name="action" value="update_user_info">
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" value="<?php echo htmlspecialchars($profile['full_name'] ?? ''); ?>" readonly style="background-color: #e9ecef;">
-                        <small style="color: #6c757d;">Change in account settings</small>
+                        <label for="full_name">Full Name *</label>
+                        <input type="text" id="full_name" name="full_name" value="<?php echo htmlspecialchars($profile['full_name'] ?? ''); ?>" required>
                     </div>
                     <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" value="<?php echo htmlspecialchars($profile['email'] ?? ''); ?>" readonly style="background-color: #e9ecef;">
-                        <small style="color: #6c757d;">Change in account settings</small>
+                        <label for="email">Email Address *</label>
+                        <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($profile['email'] ?? ''); ?>" required>
                     </div>
                 </div>
+
+                <button type="submit" class="btn btn-primary">💾 Save User Info</button>
+            </form>
+        </div>
+
+        <!-- Professional Information -->
+        <div class="section-card">
+            <h2>Professional Information</h2>
+            <form method="POST">
+                <input type="hidden" name="action" value="update_profile">
 
                 <div class="form-row">
                     <div class="form-group">
@@ -482,7 +585,7 @@ $profile = $resume_data['profile'];
                     <input type="text" id="languages" name="languages" value="<?php echo htmlspecialchars($profile['languages'] ?? ''); ?>" placeholder="English, Filipino, Spanish">
                 </div>
 
-                <button type="submit" class="btn btn-primary">💾 Save Profile</button>
+                <button type="submit" class="btn btn-primary">💾 Save Professional Info</button>
             </form>
         </div>
 
@@ -506,3 +609,337 @@ $profile = $resume_data['profile'];
                     </div>
                     
                     <div class="form-row">
+                        <div class="form-group">
+                            <label for="start_date">Start Date</label>
+                            <input type="text" id="start_date" name="start_date" placeholder="e.g., Aug 2023">
+                        </div>
+                        <div class="form-group">
+                            <label for="end_date">End Date</label>
+                            <input type="text" id="end_date" name="end_date" placeholder="e.g., Present or May 2027">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="gpa">GPA (optional)</label>
+                        <input type="text" id="gpa" name="gpa" placeholder="e.g., 3.8/4.0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edu_display_order">Display Order</label>
+                        <input type="number" id="edu_display_order" name="display_order" value="0" min="0">
+                        <small>Lower numbers appear first</small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">Add Education</button>
+                </form>
+            </div>
+            
+            <div class="item-list">
+                <?php foreach ($resume_data['education'] as $edu): ?>
+                    <?php if ($edit_education_id == $edu['id']): ?>
+                        <!-- Edit Form -->
+                        <div class="edit-form">
+                            <h4>✏️ Editing Education</h4>
+                            <form method="POST">
+                                <input type="hidden" name="action" value="update_education">
+                                <input type="hidden" name="id" value="<?php echo $edu['id']; ?>">
+                                
+                                <div class="form-group">
+                                    <label>Degree *</label>
+                                    <input type="text" name="degree" value="<?php echo htmlspecialchars($edu['degree']); ?>" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>School/University *</label>
+                                    <input type="text" name="school" value="<?php echo htmlspecialchars($edu['school']); ?>" required>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Start Date</label>
+                                        <input type="text" name="start_date" value="<?php echo htmlspecialchars($edu['start_date']); ?>">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>End Date</label>
+                                        <input type="text" name="end_date" value="<?php echo htmlspecialchars($edu['end_date']); ?>">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>GPA</label>
+                                    <input type="text" name="gpa" value="<?php echo htmlspecialchars($edu['gpa']); ?>">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Display Order</label>
+                                    <input type="number" name="display_order" value="<?php echo $edu['display_order']; ?>" min="0">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-success">💾 Save Changes</button>
+                                <a href="edit_resume.php" class="btn btn-warning">Cancel</a>
+                            </form>
+                        </div>
+                    <?php else: ?>
+                        <!-- Display Item -->
+                        <div class="list-item">
+                            <div class="list-item-header">
+                                <div class="list-item-content">
+                                    <h4><?php echo htmlspecialchars($edu['degree']); ?></h4>
+                                    <p><strong><?php echo htmlspecialchars($edu['school']); ?></strong></p>
+                                    <p><?php echo htmlspecialchars($edu['start_date']); ?> - <?php echo htmlspecialchars($edu['end_date']); ?></p>
+                                    <?php if ($edu['gpa']): ?>
+                                        <p>GPA: <?php echo htmlspecialchars($edu['gpa']); ?></p>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="list-item-actions">
+                                    <a href="?edit_education=<?php echo $edu['id']; ?>" class="btn btn-warning btn-sm">✏️ Edit</a>
+                                    <form method="POST" style="display: inline;">
+                                        <input type="hidden" name="action" value="delete_education">
+                                        <input type="hidden" name="id" value="<?php echo $edu['id']; ?>">
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this education entry?')">🗑️</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+                
+                <?php if (empty($resume_data['education'])): ?>
+                    <p style="color: #6c757d; text-align: center; padding: 20px;">No education entries yet. Add your first one above!</p>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Projects Section -->
+        <div class="section-card">
+            <h2>Projects</h2>
+            
+            <button type="button" class="collapsible">➕ Add New Project</button>
+            <div class="collapsible-content">
+                <form method="POST">
+                    <input type="hidden" name="action" value="add_project">
+                    
+                    <div class="form-group">
+                        <label for="project_title">Project Title *</label>
+                        <input type="text" id="project_title" name="title" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="period">Time Period</label>
+                        <input type="text" id="period" name="period" placeholder="e.g., April 2025 - May 2025">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description *</label>
+                        <textarea id="description" name="description" required placeholder="Describe your project. Each line will be a bullet point."></textarea>
+                        <small>Tip: Each line will be displayed as a separate bullet point</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="proj_display_order">Display Order</label>
+                        <input type="number" id="proj_display_order" name="display_order" value="0" min="0">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">Add Project</button>
+                </form>
+            </div>
+            
+            <div class="item-list">
+                <?php foreach ($resume_data['projects'] as $project): ?>
+                    <?php if ($edit_project_id == $project['id']): ?>
+                        <!-- Edit Form -->
+                        <div class="edit-form">
+                            <h4>✏️ Editing Project</h4>
+                            <form method="POST">
+                                <input type="hidden" name="action" value="update_project">
+                                <input type="hidden" name="id" value="<?php echo $project['id']; ?>">
+                                
+                                <div class="form-group">
+                                    <label>Project Title *</label>
+                                    <input type="text" name="title" value="<?php echo htmlspecialchars($project['title']); ?>" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Time Period</label>
+                                    <input type="text" name="period" value="<?php echo htmlspecialchars($project['period']); ?>">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Description *</label>
+                                    <textarea name="description" required><?php echo htmlspecialchars($project['description']); ?></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Display Order</label>
+                                    <input type="number" name="display_order" value="<?php echo $project['display_order']; ?>" min="0">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-success">💾 Save Changes</button>
+                                <a href="edit_resume.php" class="btn btn-warning">Cancel</a>
+                            </form>
+                        </div>
+                    <?php else: ?>
+                        <!-- Display Item -->
+                        <div class="list-item">
+                            <div class="list-item-header">
+                                <div class="list-item-content">
+                                    <h4><?php echo htmlspecialchars($project['title']); ?></h4>
+                                    <?php if ($project['period']): ?>
+                                        <p><strong><?php echo htmlspecialchars($project['period']); ?></strong></p>
+                                    <?php endif; ?>
+                                    <p style="white-space: pre-line;"><?php echo htmlspecialchars($project['description']); ?></p>
+                                </div>
+                                <div class="list-item-actions">
+                                    <a href="?edit_project=<?php echo $project['id']; ?>" class="btn btn-warning btn-sm">✏️ Edit</a>
+                                    <form method="POST" style="display: inline;">
+                                        <input type="hidden" name="action" value="delete_project">
+                                        <input type="hidden" name="id" value="<?php echo $project['id']; ?>">
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this project?')">🗑️</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+                
+                <?php if (empty($resume_data['projects'])): ?>
+                    <p style="color: #6c757d; text-align: center; padding: 20px;">No projects yet. Add your first one above!</p>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Skills Section -->
+        <div class="section-card">
+            <h2>Skills</h2>
+            
+            <button type="button" class="collapsible">➕ Add New Skill</button>
+            <div class="collapsible-content">
+                <form method="POST">
+                    <input type="hidden" name="action" value="add_skill">
+                    
+                    <div class="form-group">
+                        <label for="category">Category *</label>
+                        <input type="text" id="category" name="category" required placeholder="e.g., Programming Languages, Web Technologies">
+                        <small>Skills will be grouped by category</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="skill_name">Skill Name *</label>
+                        <input type="text" id="skill_name" name="skill_name" required placeholder="e.g., JavaScript, React">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="skill_display_order">Display Order</label>
+                        <input type="number" id="skill_display_order" name="display_order" value="0" min="0">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">Add Skill</button>
+                </form>
+            </div>
+            
+            <div class="item-list">
+                <?php foreach ($resume_data['skills'] as $category => $skills): ?>
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 10px; font-size: 1.1em;"><?php echo htmlspecialchars($category); ?></h4>
+                        <?php foreach ($skills as $skill): ?>
+                            <div class="list-item">
+                                <div class="list-item-header">
+                                    <div class="list-item-content">
+                                        <p style="color: #2c3e50; font-weight: 500;"><?php echo htmlspecialchars($skill['skill_name']); ?></p>
+                                    </div>
+                                    <div class="list-item-actions">
+                                        <form method="POST" style="display: inline;">
+                                            <input type="hidden" name="action" value="delete_skill">
+                                            <input type="hidden" name="id" value="<?php echo $skill['id']; ?>">
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this skill?')">🗑️</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endforeach; ?>
+                
+                <?php if (empty($resume_data['skills'])): ?>
+                    <p style="color: #6c757d; text-align: center; padding: 20px;">No skills yet. Add your first one above!</p>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Awards Section -->
+        <div class="section-card">
+            <h2>Awards & Activities</h2>
+            
+            <button type="button" class="collapsible">➕ Add New Award</button>
+            <div class="collapsible-content">
+                <form method="POST">
+                    <input type="hidden" name="action" value="add_award">
+                    
+                    <div class="form-group">
+                        <label for="award_name">Award/Activity *</label>
+                        <input type="text" id="award_name" name="award_name" required placeholder="e.g., Dean's Lister (1st year - 2nd year)">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="award_display_order">Display Order</label>
+                        <input type="number" id="award_display_order" name="display_order" value="0" min="0">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">Add Award</button>
+                </form>
+            </div>
+            
+            <div class="item-list">
+                <?php foreach ($resume_data['awards'] as $award): ?>
+                    <div class="list-item">
+                        <div class="list-item-header">
+                            <div class="list-item-content">
+                                <p style="color: #2c3e50;"><?php echo htmlspecialchars($award['award_name']); ?></p>
+                            </div>
+                            <div class="list-item-actions">
+                                <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="delete_award">
+                                    <input type="hidden" name="id" value="<?php echo $award['id']; ?>">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this award?')">🗑️</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                
+                <?php if (empty($resume_data['awards'])): ?>
+                    <p style="color: #6c757d; text-align: center; padding: 20px;">No awards yet. Add your first one above!</p>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Collapsible sections
+        var coll = document.getElementsByClassName("collapsible");
+        for (var i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                if (content.style.maxHeight) {
+                    content.style.maxHeight = null;
+                    content.classList.remove("active");
+                } else {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                    content.classList.add("active");
+                }
+            });
+        }
+        
+        // Auto-dismiss success messages after 5 seconds
+        const messages = document.querySelectorAll('.message.success');
+        messages.forEach(message => {
+            setTimeout(() => {
+                message.style.transition = 'opacity 0.5s';
+                message.style.opacity = '0';
+                setTimeout(() => message.remove(), 500);
+            }, 5000);
+        });
+    </script>
+</body>
+</html
