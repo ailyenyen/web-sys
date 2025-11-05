@@ -45,11 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $data = [
                     'title' => $_POST['title'] ?? '',
                     'phone' => $_POST['phone'] ?? '',
-                    'country' => $_POST['country'] ?? '',
-                    'province' => $_POST['province'] ?? '',
-                    'city' => $_POST['city'] ?? '',
-                    'linkedin' => $_POST['linkedin'] ?? '',
-                    'github' => $_POST['github'] ?? '',
+                    'location' => $_POST['location'] ?? '',
                     'summary' => $_POST['summary'] ?? '',
                     'languages' => $_POST['languages'] ?? ''
                 ];
@@ -195,135 +191,6 @@ if (isset($_GET['logout'])) {
     logout();
     header('Location: login.php');
     exit();
-}
-
-// Location data for dropdowns
-$countries = [
-    'US' => 'United States',
-    'CA' => 'Canada',
-    'PH' => 'Philippines',
-    'UK' => 'United Kingdom',
-    'AU' => 'Australia'
-];
-
-$provinces = [
-    'US' => [
-        'CA' => 'California',
-        'TX' => 'Texas',
-        'NY' => 'New York',
-        'FL' => 'Florida',
-        'IL' => 'Illinois'
-    ],
-    'CA' => [
-        'ON' => 'Ontario',
-        'QC' => 'Quebec',
-        'BC' => 'British Columbia',
-        'AB' => 'Alberta',
-        'MB' => 'Manitoba'
-    ],
-    'PH' => [
-        'NCR' => 'National Capital Region',
-        'CAL' => 'Calabarzon',
-        'CV' => 'Central Visayas',
-        'NLV' => 'Northern Luzon',
-        'MLV' => 'Metro Luzon'
-    ],
-    'UK' => [
-        'ENG' => 'England',
-        'SCT' => 'Scotland',
-        'WLS' => 'Wales',
-        'NIR' => 'Northern Ireland'
-    ],
-    'AU' => [
-        'NSW' => 'New South Wales',
-        'VIC' => 'Victoria',
-        'QLD' => 'Queensland',
-        'WA' => 'Western Australia',
-        'SA' => 'South Australia'
-    ]
-];
-
-$cities = [
-    'CA' => [
-        'LA' => 'Los Angeles',
-        'SF' => 'San Francisco',
-        'SD' => 'San Diego',
-        'SJ' => 'San Jose'
-    ],
-    'TX' => [
-        'HOU' => 'Houston',
-        'DAL' => 'Dallas',
-        'AUS' => 'Austin',
-        'SAT' => 'San Antonio'
-    ],
-    'NY' => [
-        'NYC' => 'New York City',
-        'BUF' => 'Buffalo',
-        'ROC' => 'Rochester',
-        'SYR' => 'Syracuse'
-    ],
-    'ON' => [
-        'TOR' => 'Toronto',
-        'OTT' => 'Ottawa',
-        'MSH' => 'Mississauga',
-        'HAM' => 'Hamilton'
-    ],
-    'QC' => [
-        'MON' => 'Montreal',
-        'QUE' => 'Quebec City',
-        'LAV' => 'Laval',
-        'GAT' => 'Gatineau'
-    ],
-    'NCR' => [
-        'MNL' => 'Manila',
-        'QC' => 'Quezon City',
-        'MKT' => 'Makati',
-        'TAG' => 'Taguig'
-    ],
-    'CAL' => [
-        'ANT' => 'Antipolo',
-        'BAT' => 'Batangas City',
-        'LUC' => 'Lucena',
-        'SBL' => 'Santa Rosa'
-    ],
-    'ENG' => [
-        'LON' => 'London',
-        'MAN' => 'Manchester',
-        'BIR' => 'Birmingham',
-        'LEE' => 'Leeds'
-    ],
-    'SCT' => [
-        'GLW' => 'Glasgow',
-        'EDI' => 'Edinburgh',
-        'ABD' => 'Aberdeen',
-        'DUN' => 'Dundee'
-    ],
-    'NSW' => [
-        'SYD' => 'Sydney',
-        'NEW' => 'Newcastle',
-        'WOL' => 'Wollongong',
-        'CEN' => 'Central Coast'
-    ],
-    'VIC' => [
-        'MEL' => 'Melbourne',
-        'GEEL' => 'Geelong',
-        'BAL' => 'Ballarat',
-        'BEN' => 'Bendigo'
-    ]
-];
-
-// Parse existing location data if available
-$existing_country = '';
-$existing_province = '';
-$existing_city = '';
-
-if (!empty($profile['location'])) {
-    $location_parts = explode(',', $profile['location']);
-    if (count($location_parts) >= 3) {
-        $existing_city = trim($location_parts[0]);
-        $existing_province = trim($location_parts[1]);
-        $existing_country = trim($location_parts[2]);
-    }
 }
 ?>
 
@@ -717,66 +584,11 @@ if (!empty($profile['location'])) {
                 </div>
 
                 <div class="form-group">
-                    <label>Location</label>
-                    <div class="form-row-3">
-                        <div class="form-group">
-                            <label for="country">Country</label>
-                            <select id="country" name="country">
-                                <option value="">Select Country</option>
-                                <?php foreach ($countries as $code => $name): ?>
-                                    <option value="<?php echo $code; ?>" <?php echo ($existing_country === $name) ? 'selected' : ''; ?>>
-                                        <?php echo $name; ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="province">State/Province</label>
-                            <select id="province" name="province">
-                                <option value="">Select State/Province</option>
-                                <?php 
-                                if (!empty($existing_country)) {
-                                    $country_code = array_search($existing_country, $countries);
-                                    if ($country_code && isset($provinces[$country_code])) {
-                                        foreach ($provinces[$country_code] as $code => $name) {
-                                            $selected = ($existing_province === $name) ? 'selected' : '';
-                                            echo "<option value='$code' $selected>$name</option>";
-                                        }
-                                    }
-                                }
-                                ?>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="city">City</label>
-                            <select id="city" name="city">
-                                <option value="">Select City</option>
-                                <?php 
-                                if (!empty($existing_province)) {
-                                    if (isset($cities[$existing_province])) {
-                                        foreach ($cities[$existing_province] as $code => $name) {
-                                            $selected = ($existing_city === $name) ? 'selected' : '';
-                                            echo "<option value='$code' $selected>$name</option>";
-                                        }
-                                    }
-                                }
-                                ?>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="linkedin">LinkedIn Profile</label>
-                        <input type="url" id="linkedin" name="linkedin" value="<?php echo htmlspecialchars($profile['linkedin'] ?? ''); ?>" 
-                               placeholder="https://linkedin.com/in/username">
-                    </div>
-                    <div class="form-group">
-                        <label for="github">GitHub Profile</label>
-                        <input type="url" id="github" name="github" value="<?php echo htmlspecialchars($profile['github'] ?? ''); ?>" 
-                               placeholder="https://github.com/username">
-                    </div>
+                    <label for="location">Location *</label>
+                    <input type="text" id="location" name="location" value="<?php echo htmlspecialchars($profile['location'] ?? ''); ?>" 
+                           required minlength="2" maxlength="100" placeholder="e.g., Manila, Philippines">
+                    <div class="error-message" id="location_error">Location must be at least 2 characters long</div>
+                    <small>Enter your city and country (this will be displayed on your resume)</small>
                 </div>
 
                 <div class="form-group">
@@ -800,7 +612,7 @@ if (!empty($profile['location'])) {
         <div class="section-card">
             <h2>Education</h2>
             
-            <button type="button" class="collapsible">+ Add New Education</button>
+            <button type="button" class="collapsible">Add New Education</button>
             <div class="collapsible-content">
                 <form method="POST" id="education-form">
                     <input type="hidden" name="action" value="add_education">
@@ -924,7 +736,7 @@ if (!empty($profile['location'])) {
         <div class="section-card">
             <h2>Projects</h2>
             
-            <button type="button" class="collapsible">+ Add New Project</button>
+            <button type="button" class="collapsible">Add New Project</button>
             <div class="collapsible-content">
                 <form method="POST" id="project-form">
                     <input type="hidden" name="action" value="add_project">
@@ -1025,7 +837,7 @@ if (!empty($profile['location'])) {
         <div class="section-card">
             <h2>Skills</h2>
             
-            <button type="button" class="collapsible">+ Add New Skill</button>
+            <button type="button" class="collapsible">Add New Skill</button>
             <div class="collapsible-content">
                 <form method="POST" id="skill-form">
                     <input type="hidden" name="action" value="add_skill">
@@ -1087,7 +899,7 @@ if (!empty($profile['location'])) {
         <div class="section-card">
             <h2>Awards & Activities</h2>
             
-            <button type="button" class="collapsible">+ Add New Award</button>
+            <button type="button" class="collapsible">Add New Award</button>
             <div class="collapsible-content">
                 <form method="POST" id="award-form">
                     <input type="hidden" name="action" value="add_award">
@@ -1160,59 +972,6 @@ if (!empty($profile['location'])) {
             }, 5000);
         });
 
-        // Location dropdown functionality
-        document.getElementById('country').addEventListener('change', function() {
-            const country = this.value;
-            const provinceSelect = document.getElementById('province');
-            const citySelect = document.getElementById('city');
-            
-            // Clear and disable dependent dropdowns
-            provinceSelect.innerHTML = '<option value="">Select State/Province</option>';
-            citySelect.innerHTML = '<option value="">Select City</option>';
-            provinceSelect.disabled = !country;
-            citySelect.disabled = true;
-            
-            if (country) {
-                // In a real application, you would fetch this data from the server
-                // For this example, we'll use the data from PHP
-                const provinces = <?php echo json_encode($provinces); ?>;
-                
-                if (provinces[country]) {
-                    for (const [code, name] of Object.entries(provinces[country])) {
-                        const option = document.createElement('option');
-                        option.value = code;
-                        option.textContent = name;
-                        provinceSelect.appendChild(option);
-                    }
-                    provinceSelect.disabled = false;
-                }
-            }
-        });
-
-        document.getElementById('province').addEventListener('change', function() {
-            const province = this.value;
-            const citySelect = document.getElementById('city');
-            
-            // Clear and disable city dropdown
-            citySelect.innerHTML = '<option value="">Select City</option>';
-            citySelect.disabled = !province;
-            
-            if (province) {
-                // In a real application, you would fetch this data from the server
-                const cities = <?php echo json_encode($cities); ?>;
-                
-                if (cities[province]) {
-                    for (const [code, name] of Object.entries(cities[province])) {
-                        const option = document.createElement('option');
-                        option.value = code;
-                        option.textContent = name;
-                        citySelect.appendChild(option);
-                    }
-                    citySelect.disabled = false;
-                }
-            }
-        });
-
         // Form validation
         function setupFormValidation(formId, validations) {
             const form = document.getElementById(formId);
@@ -1278,6 +1037,10 @@ if (!empty($profile['location'])) {
             },
             'phone': {
                 minLength: 'Phone number must be at least 10 digits'
+            },
+            'location': {
+                required: 'Location is required',
+                minLength: 'Location must be at least 2 characters long'
             },
             'summary': {
                 required: 'Professional summary is required',

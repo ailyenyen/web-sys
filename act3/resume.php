@@ -564,14 +564,14 @@ if (isset($_GET['logout'])) {
                     <span>Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?>!</span>
                     <span>Full access granted</span>
                 <?php else: ?>
-                    <span>👤 Viewing as Guest</span>
+                    <span>Viewing as Guest</span>
                     <span>Limited access - Contact information hidden</span>
                 <?php endif; ?>
             </div>
                 <!-- In resume.php, find the .top-nav section and update it: -->
                 <div class="status-right">
                     <?php if ($is_logged_in): ?>
-                        <a href="edit_resume.php">✏️ Edit Resume</a>
+                        <a href="edit_resume.php">Edit Resume</a>
                         <a href="?logout=1">Logout</a>
                     <?php else: ?>
                         <a href="login.php">Login</a>
@@ -583,14 +583,13 @@ if (isset($_GET['logout'])) {
         <!-- Header Section -->
         <header class="header">
             <?php if ($is_logged_in): ?>
-                <button class="print-button" onclick="printResume()">📄 Print / Download CV</button>
+                <button class="print-button" onclick="printResume()">Print / Download CV</button>
             <?php endif; ?>
             <h1><?php echo htmlspecialchars($resume_data['personal_info']['name']); ?></h1>
             <div class="title"><?php echo htmlspecialchars($resume_data['personal_info']['title']); ?></div>
             
             <div class="contact-info">
                 <div class="contact-item">
-                    <span>📧</span>
                     <?php if ($show_contact_info): ?>
                         <span><?php echo htmlspecialchars($resume_data['personal_info']['email']); ?></span>
                     <?php else: ?>
@@ -598,7 +597,6 @@ if (isset($_GET['logout'])) {
                     <?php endif; ?>
                 </div>
                 <div class="contact-item">
-                    <span>📱</span>
                     <?php if ($show_contact_info): ?>
                         <span><?php echo htmlspecialchars($resume_data['personal_info']['phone']); ?></span>
                     <?php else: ?>
@@ -606,7 +604,6 @@ if (isset($_GET['logout'])) {
                     <?php endif; ?>
                 </div>
                 <div class="contact-item">
-                    <span>📍</span>
                     <?php if ($show_contact_info): ?>
                         <span><?php echo htmlspecialchars($resume_data['personal_info']['location']); ?></span>
                     <?php else: ?>
