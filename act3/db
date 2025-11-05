@@ -1,0 +1,175 @@
+-- ========================================
+-- RESUME SYSTEM DATABASE SETUP
+-- Run this entire script in PostgreSQL
+-- ========================================
+
+-- Step 1: Create Database (comment out if already exists)
+-- CREATE DATABASE resume_system;
+-- \c resume_system
+
+-- Step 2: Create Users Table
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+-- Step 3: Create Resume Tables
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255),
+    phone VARCHAR(50),
+    location VARCHAR(255),
+    linkedin VARCHAR(255),
+    github VARCHAR(255),
+    summary TEXT,
+    languages TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS education (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    degree VARCHAR(255) NOT NULL,
+    school VARCHAR(255) NOT NULL,
+    start_date VARCHAR(50),
+    end_date VARCHAR(50),
+    gpa VARCHAR(20),
+    display_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS projects (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    period VARCHAR(100),
+    description TEXT,
+    display_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS skills (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    category VARCHAR(100) NOT NULL,
+    skill_name VARCHAR(100) NOT NULL,
+    display_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS awards (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    award_name VARCHAR(255) NOT NULL,
+    display_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes
+CREATE INDEX IF NOT EXISTS idx_education_user ON education(user_id);
+CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
+CREATE INDEX IF NOT EXISTS idx_skills_user ON skills(user_id);
+CREATE INDEX IF NOT EXISTS idx_awards_user ON awards(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_user ON user_profiles(user_id);
+
+-- Step 4: Insert Admin User
+INSERT INTO users (username, password, email, full_name, is_active) 
+VALUES (
+    'admin', 
+    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 
+    'admin@example.com', 
+    'Administrator', 
+    TRUE
+)
+ON CONFLICT (username) DO NOTHING;
+
+-- Step 5: Insert Resume Data
+INSERT INTO user_profiles (user_id, title, phone, location, linkedin, github, summary, languages)
+VALUES (
+    1,
+    'Computer Science Student',
+    '+63 927 863 4850',
+    'Calamba City, Laguna 4027',
+    '',
+    '',
+    'Computer Science student with strong experience in UI/UX design and frontend development, skilled in creating intuitive and responsive user interfaces. Proficient in JavaScript, React, HTML, CSS, and design tools such as Figma, with a solid foundation in programming and databases. Experienced in pitching and presenting technical ideas to both technical and non-technical audiences.',
+    'English, Filipino'
+)
+ON CONFLICT (user_id) DO UPDATE SET
+    title = EXCLUDED.title,
+    phone = EXCLUDED.phone,
+    location = EXCLUDED.location,
+    summary = EXCLUDED.summary,
+    languages = EXCLUDED.languages,
+    updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO education (user_id, degree, school, start_date, end_date, gpa, display_order)
+VALUES (
+    1,
+    'Bachelor of Science in Computer Science',
+    'Batangas State University, Batangas City',
+    'Aug 2023',
+    'PRESENT',
+    NULL,
+    0
+);
+
+INSERT INTO projects (user_id, title, period, description, display_order)
+VALUES 
+(1, 'LenLens - Intelligent Classifier with Geolocation Support', 'April 2025 – May 2025',
+    'Machine Learning Model to classify waste into four categories.
+Integrated geolocation services and designed an intuitive, responsive UI for desktop and mobile platforms.
+Python with Flask, TensorFlow (MobileNetV2), and leaflet.js.', 0),
+(1, 'UNISTEEL', 'May 2025 - Aug 2025',
+    'Designed a platform to prevent, manage, and recover from disasters like floods, earthquakes, and fires.
+Integrated IoT sensors to collect environmental and structural data.
+Used AI to analyze risks and provide real-time alerts and guidance.', 1),
+(1, 'CIVILIAN', 'May 2025 - Sep 2025',
+    'Developed complex SQL queries to retrieve data from multiple tables for reporting purposes.
+Collaborated with developers in designing efficient database solutions based on business needs.
+Created stored procedures and triggers to automate data manipulation processes.', 2);
+
+INSERT INTO skills (user_id, category, skill_name, display_order)
+VALUES 
+(1, 'Programming Languages', 'Java', 0),
+(1, 'Programming Languages', 'Python', 1),
+(1, 'Programming Languages', 'C++', 2),
+(1, 'Programming Languages', 'C#', 3),
+(1, 'Web Technologies', 'HTML', 0),
+(1, 'Web Technologies', 'CSS', 1),
+(1, 'Web Technologies', 'JavaScript', 2),
+(1, 'Web Technologies', 'React', 3),
+(1, 'Web Technologies', 'Node.js', 4),
+(1, 'Databases', 'MySQL', 0),
+(1, 'Databases', 'PostgreSQL', 1),
+(1, 'Design & Analytics', 'UI/UX', 0),
+(1, 'Design & Analytics', 'Figma', 1),
+(1, 'Design & Analytics', 'Power BI', 2),
+(1, 'Other Skills', 'Project Management', 0),
+(1, 'Other Skills', 'Data Visualization', 1);
+
+INSERT INTO awards (user_id, award_name, display_order)
+VALUES 
+(1, 'Dean''s Lister (1st year - 2nd year)', 0),
+(1, 'Technofusion 2025 – Hackathon – 2nd runner up', 1);
+
+-- Update admin user with your information
+UPDATE users 
+SET email = 'mallenjanmayen@gmail.com', 
+    full_name = 'Jan Mayen Mallen'
+WHERE id = 1;
+
+-- Verify the update
+SELECT id, username, email, full_name FROM users WHERE id = 1;
